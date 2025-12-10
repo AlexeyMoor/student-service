@@ -118,7 +118,7 @@ public class StudentServiceImpl implements StudentService {
     @Override
     public List<StudentDto> findStudentsByExamNameMinScore(String examName, Integer minScore) {
         return studentRepository.findAll().stream()
-                .filter(s -> s.getScores().getOrDefault(examName, Integer.MIN_VALUE) >= minScore)
+                .filter(s -> s.getScores() != null && s.getScores().getOrDefault(examName, Integer.MIN_VALUE) >= minScore)
                 .map(s -> new StudentDto(s.getId(), s.getName(), s.getScores()))
                 .toList();
     }
