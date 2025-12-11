@@ -9,11 +9,14 @@ import ait.cohort70.student.dto.exceptions.EntityExistsException;
 import ait.cohort70.student.dto.exceptions.NotFoundException;
 import ait.cohort70.student.model.Student;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toSet;
 
@@ -21,15 +24,13 @@ import static java.util.stream.Collectors.toSet;
 @RequiredArgsConstructor // Автоматически генерирует конструктор с обязательными полями (final)
 public class StudentServiceImpl implements StudentService {
     private final StudentRepository studentRepository;
+    private final ModelMapper modelMapper;
 
     // Добавляет нового студента
     @Override
     public void addStudent(StudentCredentialsDto studentCredentialsDto) {
         if (studentRepository.findById(studentCredentialsDto.getId()).isEmpty()) {
-            Student student = new Student(
-                    studentCredentialsDto.getId(),
-                    studentCredentialsDto.getName(),
-                    studentCredentialsDto.getPassword());
+            Student student = modelMapper.map(studentCredentialsDto, Student.class);
             studentRepository.save(student);
         } else {
             throw new EntityExistsException("Student with ID " + studentCredentialsDto.getId() + " already exists!");
@@ -40,11 +41,7 @@ public class StudentServiceImpl implements StudentService {
     @Override
     public StudentDto findStudent(Long id) {
         Student student = studentRepository.findById(id).orElseThrow(NotFoundException::new);
-        return new StudentDto(
-                student.getId(),
-                student.getName(),
-                student.getScores()
-        );
+        return modelMapper.map(student, StudentDto.class);
     }
 
     // Удалить студента по ID
@@ -52,11 +49,7 @@ public class StudentServiceImpl implements StudentService {
     public StudentDto removeStudent(Long id) {
         Student student = studentRepository.findById(id).orElseThrow(NotFoundException::new);
         studentRepository.deleteById(id);
-        return new StudentDto(
-                student.getId(),
-                student.getName(),
-                student.getScores()
-        );
+        return modelMapper.map(student, StudentDto.class);
     }
 
     // Обновить информацию о студенте по ID (имя и/или пароль)
@@ -70,11 +63,7 @@ public class StudentServiceImpl implements StudentService {
             student.setPassword(studentUpdateDto.getPassword());
         }
         studentRepository.save(student);
-        return new StudentCredentialsDto(
-                student.getId(),
-                student.getName(),
-                student.getPassword()
-        );
+        return modelMapper.map(student, StudentCredentialsDto.class);
     }
 
     // Добавить оценку студенту по ID
@@ -92,7 +81,7 @@ public class StudentServiceImpl implements StudentService {
     @Override
     public List<StudentDto> findStudentsByName(String name) {
         return studentRepository.findByNameIgnoreCase(name)
-                .map(s -> new StudentDto(s.getId(), s.getName(), s.getScores()))
+                .map(s -> modelMapper.map(s, StudentDto.class))
                 .toList();
     }
 
@@ -102,22 +91,25 @@ public class StudentServiceImpl implements StudentService {
         if (names == null || names.isEmpty()) {
             return 0L;
         }
-        Set<String> lowerCaseNames = names.stream()
+        Set<String> filteredNames = names.stream()
                 .filter(Objects::nonNull)
-                .map(String::toLowerCase)
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
                 .collect(toSet());
-        return studentRepository.findAll().stream()
-                .filter(student -> student.getName() != null)
-                .map(student -> student.getName().toLowerCase())
-                .filter(lowerCaseNames::contains)
-                .count();
+        if (filteredNames.isEmpty()) {
+            return 0L;
+        }
+        String regex = "^(" + filteredNames.stream()
+                .map(Pattern::quote)
+                .collect(Collectors.joining("|")) + ")$";
+        return studentRepository.countByNamesIgnoreCase(regex);
     }
 
     // Найти студентов, сдавших определенный экзамен на минимальный балл
     @Override
     public List<StudentDto> findStudentsByExamNameMinScore(String examName, Integer minScore) {
         return studentRepository.findByExamAndScoreGreaterThan(examName, minScore)
-                .map(s -> new StudentDto(s.getId(), s.getName(), s.getScores()))
+                .map(s -> modelMapper.map(s, StudentDto.class))
                 .toList();
     }
 }
