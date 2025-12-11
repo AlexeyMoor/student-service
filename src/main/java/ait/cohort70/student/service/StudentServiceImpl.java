@@ -91,8 +91,7 @@ public class StudentServiceImpl implements StudentService {
     // Найти студентов по имени
     @Override
     public List<StudentDto> findStudentsByName(String name) {
-        return studentRepository.findAll().stream()
-                .filter(s -> s.getName() != null && s.getName().equalsIgnoreCase(name))
+        return studentRepository.findByNameIgnoreCase(name)
                 .map(s -> new StudentDto(s.getId(), s.getName(), s.getScores()))
                 .toList();
     }
@@ -117,8 +116,7 @@ public class StudentServiceImpl implements StudentService {
     // Найти студентов, сдавших определенный экзамен на минимальный балл
     @Override
     public List<StudentDto> findStudentsByExamNameMinScore(String examName, Integer minScore) {
-        return studentRepository.findAll().stream()
-                .filter(s -> s.getScores() != null && s.getScores().getOrDefault(examName, Integer.MIN_VALUE) >= minScore)
+        return studentRepository.findByExamAndScoreGreaterThan(examName, minScore)
                 .map(s -> new StudentDto(s.getId(), s.getName(), s.getScores()))
                 .toList();
     }
