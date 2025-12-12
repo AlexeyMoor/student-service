@@ -97,7 +97,7 @@ public class StudentServiceImpl implements StudentService {
         if (filteredNames.isEmpty()) {
             return 0L;
         }
-        return studentRepository.countByNameIn(filteredNames);
+        return studentRepository.countByNameInIgnoreCase(filteredNames);
     }
 
     // Найти студентов, сдавших определенный экзамен на минимальный балл
