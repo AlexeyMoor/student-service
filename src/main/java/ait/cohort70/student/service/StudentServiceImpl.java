@@ -15,8 +15,6 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toSet;
 
@@ -99,10 +97,7 @@ public class StudentServiceImpl implements StudentService {
         if (filteredNames.isEmpty()) {
             return 0L;
         }
-        String regex = "^(" + filteredNames.stream()
-                .map(Pattern::quote)
-                .collect(Collectors.joining("|")) + ")$";
-        return studentRepository.countByNamesIgnoreCase(regex);
+        return studentRepository.countByNameIn(filteredNames);
     }
 
     // Найти студентов, сдавших определенный экзамен на минимальный балл
